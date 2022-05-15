@@ -100,9 +100,6 @@ class BoundGroup:
         global _mul_group
         
         _current_groups.pop()
-        #popped = _current_groups.pop()
-        ##if popped != self:
-        #    raise ValueError('Stack error: {} != {}'.format(self, popped))
         
         if _current_groups:
             new_top = _current_groups[-1]
