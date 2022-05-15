@@ -27,19 +27,29 @@ class OpType(Enum):
         global _ops
         _ops.pop()
 
-_add_group = None
-_mul_group = None
-_current_groups = list()
+#_add_group = None
+#_mul_group = None
+#_current_groups = list()
+
+_group_context = list()
 
 class Element:
     def __init__(self, val):
         self.val = val
     
     def check_in_group(self):
-        if _add_group and self in _add_group:
-            return
+        # if _add_group and self in _add_group:
+        #     return
         
-        if _mul_group and self in _mul_group:
+        # if _mul_group and self in _mul_group:
+        #     return
+        if not _group_context:
+            raise ValueError('Not in any active groups')
+        
+        context = _group_context[-1]
+        if context.add and self in context.add:
+            return
+        if context.mul and self in context.mul:
             return
         
         raise ValueError('Not in any active groups')
@@ -47,7 +57,8 @@ class Element:
     def __add__(self, o):
         self.check_in_group()
         
-        add = _add_group.op
+        # add = _add_group.op
+        add = _group_context[-1].add.op
         return add(self, o)
     
     def __rmul__(self, o):
@@ -63,10 +74,12 @@ class Element:
             raise ValueError('Left multiplicand: {}'.format(o))
         
         #group = _current_add_groups[-1]
-        if not self in _add_group:
+        # if not self in _add_group:
+        if not self in _group_context[-1].add:
             raise ValueError('Right multiplicand: {}'.format(self))
         
-        result = _add_group.identity
+        # result = _add_group.identity
+        result = _group_context[-1].add.identity
         
         for _ in range(o):
             result = result + self
@@ -80,7 +93,8 @@ class Element:
         if type(o) in (int, float) and o == int(o):
             return o * self
         
-        mul = _mul_group.op
+        # mul = _mul_group.op
+        mul = _group_context[-1].mul.op
         return mul(self, o)
     
     # Do whatever operation is the current operation
@@ -99,11 +113,14 @@ class Element:
             elif op != OpType.DEFAULT:
                 raise ValueError('Op type: {}'.format(op))
         
-        if _add_group and self in _add_group:
-            if _mul_group and self in _mul_group:
+        # if _add_group and self in _add_group:
+        #     if _mul_group and self in _mul_group:
+        context = _group_context[-1]
+        if context.add and self in context.add:
+            if context.mul and self in context.mul:
                 raise ValueError('Operation ambiguous')
             return self + o
-        elif self in _mul_group:
+        elif self in context.mul:
             return self * o
     
     # Return the element either times zero or the the zeroth power
@@ -120,17 +137,22 @@ class Element:
             elif op != OpType.DEFAULT:
                 raise ValueError('Op type: {}'.format(op))
         
-        if _add_group and self in _add_group:
-            if _mul_group and self in _mul_group:
+        # if _add_group and self in _add_group:
+        #     if _mul_group and self in _mul_group:
+        context = _group_context[-1]
+        if context.add and self in context.add:
+            if context.mul and self in context.mul:
                 raise ValueError('Operation ambiguous')
             return 0 * self
-        elif self in _mul_group:
+        # elif self in _mul_group:
+        elif self in context.mul:
             return self ** 0
     
     def __pow__(self, o):
         self.check_in_group()
         
-        result = _mul_group.identity
+        # result = _mul_group.identity
+        result = _group_context[-1].mul.identity
         
         if o != int(o):#not isinstance(o, int):
             raise ValueError('Exponent: {}'.format(o))
@@ -155,43 +177,58 @@ class Element:
     def __repr__(self):
         return 'Element({})'.format(repr(self.val))
 
-class BoundGroup:
-    def __init__(self, group, op_type):
-        self.group = group
-        self.op_type = op_type
+class GroupContext:
+    def __init__(self, add, mul):
+        self.add = add
+        self.mul = mul
     
     def __enter__(self):
-        global _add_group
-        global _mul_group
-        
-        if self.op_type == OpType.ADD:
-            _add_group = self.group
-        elif self.op_type == OpType.MUL:
-            _mul_group = self.group
-        else:
-            raise ValueError('Op type: {}'.format(self.op_type))
-            
-        _current_groups.append(self)
+        global _group_context
+        _group_context.append(self)
     
-    def __exit__(self, *vals):
-        global _add_group
-        global _mul_group
+    def __exit__(self, *vars):
+        global _group_context
+        _group_context.pop()
+        # if not _group_context.pop() is self:
+        #     raise ValueError('Group context stack error')
+
+# class BoundGroup:
+#     def __init__(self, group, op_type):
+#         self.group = group
+#         self.op_type = op_type
+    
+#     def __enter__(self):
+#         global _add_group
+#         global _mul_group
         
-        popped = _current_groups.pop()
+#         if self.op_type == OpType.ADD:
+#             _add_group = self.group
+#         elif self.op_type == OpType.MUL:
+#             _mul_group = self.group
+#         else:
+#             raise ValueError('Op type: {}'.format(self.op_type))
+            
+#         _current_groups.append(self)
+    
+#     def __exit__(self, *vals):
+#         global _add_group
+#         global _mul_group
         
-        if popped.group is _add_group and popped.op_type == OpType.ADD:
-            _add_group = None
-        if popped.group is _mul_group and popped.op_type == OpType.MUL:
-            _mul_group = None
+#         popped = _current_groups.pop()
         
-        if _current_groups:
-            new_top = _current_groups[-1]
-            if new_top.op_type == OpType.ADD:
-                _add_group = new_top.group
-            elif new_top.op_type == OpType.MUL:
-                _mul_group = new_top.group
-            else:
-                raise ValueError('Op type: {}'.format(new_top.op_type))
+#         if popped.group is _add_group and popped.op_type == OpType.ADD:
+#             _add_group = None
+#         if popped.group is _mul_group and popped.op_type == OpType.MUL:
+#             _mul_group = None
+        
+#         if _current_groups:
+#             new_top = _current_groups[-1]
+#             if new_top.op_type == OpType.ADD:
+#                 _add_group = new_top.group
+#             elif new_top.op_type == OpType.MUL:
+#                 _mul_group = new_top.group
+#             else:
+#                 raise ValueError('Op type: {}'.format(new_top.op_type))
 
 class Group:
     def __init__(self, elements, op, default_type, identity=None):
@@ -212,10 +249,12 @@ class Group:
             self.identity = identity
     
     def add(self):
-        return BoundGroup(self, OpType.ADD)
+        # return BoundGroup(self, OpType.ADD)
+        return GroupContext(self, None)
     
     def mul(self):
-        return BoundGroup(self, OpType.MUL)
+        # return BoundGroup(self, OpType.MUL)
+        return GroupContext(None, self)
     
     def order(self):
         return len(self)
@@ -230,10 +269,14 @@ class Group:
         return len(self.elements)
     
     def __enter__(self):
-        BoundGroup(self, self.default_type).__enter__()
+        # BoundGroup(self, self.default_type).__enter__()
+        context = self.add() if self.default_type == OpType.ADD else self.mul()
+        context.__enter__()
     
     def __exit__(self, *vals):
-        BoundGroup(self, self.default_type).__exit__()
+        context = self.add() if self.default_type == OpType.ADD else self.mul()
+        context.__exit__()
+        # BoundGroup(self, self.default_type).__exit__()
 
 # Check that the given group is associative.
 # Runs in cubic time relative to the order of the group.
@@ -268,7 +311,7 @@ def check_inverses(group):
                     has_inverse = True
                     break
             if not has_inverse:
-                print('{} has no iverse'.format(a))
+                print('{} has no inverse'.format(a))
 
 # Check whether the given group satisfies the group axioms.
 def check_valid(group):

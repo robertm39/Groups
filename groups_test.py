@@ -6,7 +6,7 @@ Created on Sat May 14 19:40:57 2022
 """
 
 import group
-from group import OpType, Group, Element
+from group import OpType, Group, Element, GroupContext
 import cyclic
 import isomorphism
 
@@ -38,15 +38,17 @@ def test_2():
     
     a0, a1, a2, a3, a4 = add_group.elements
     
+    # with add_group:
+    #     with mul_group:
     with add_group:
         print('order(1): {}'.format(group.order(a1)))
-        
-        with mul_group:
-            print('3 + 4: {}'.format(a3 + a4))
-            print('2 * 3: {}'.format(a2 * a3))
-            print('4 * 3: {}'.format(a4 * a3))
-            print('2 ** 3: {}'.format(a2 ** 3))
-            print('2 ** 4: {}'.format(a2 ** 4))
+    
+    with GroupContext(add_group, mul_group):
+        print('3 + 4: {}'.format(a3 + a4))
+        print('2 * 3: {}'.format(a2 * a3))
+        print('4 * 3: {}'.format(a4 * a3))
+        print('2 ** 3: {}'.format(a2 ** 3))
+        print('2 ** 4: {}'.format(a2 ** 4))
         print('1 + 4: {}'.format(a1 + a4))
 
 def iso(base, a, group):
@@ -61,7 +63,7 @@ def test_3():
     print('Is isomorphism? {}'.format(isomorphism.is_isomorphism(func, group, group)))
 
 def main():
-    test_3()
+    test_2()
 
 if __name__ == '__main__':
     main()
