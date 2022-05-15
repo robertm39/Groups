@@ -5,6 +5,7 @@ Created on Sat May 14 19:40:57 2022
 @author: rober
 """
 
+import group
 from group import OpType, Group, Element
 import cyclic
 
@@ -30,6 +31,9 @@ def test_2():
     # Try the field of integers, module 5
     add_group = cyclic.add_cyclic(5)
     mul_group = cyclic.mul_cyclic(5)
+    
+    group.check_valid(add_group)
+    group.check_valid(mul_group)
     
     a0, a1, a2, a3, a4 = add_group.elements
     
