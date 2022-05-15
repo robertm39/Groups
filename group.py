@@ -8,12 +8,24 @@ Created on Sat May 14 18:52:11 2022
 from enum import Enum
 import itertools
 
-class OpType(Enum):
-    ADDITIVE='+'
-    MULTIPLICATIVE='*'
 
 #_current_add_groups = list()
 #_current_mul_groups = list()
+
+_ops = list()
+
+class OpType(Enum):
+    ADD='+'
+    MUL='*'
+    DEFAULT='?'
+    
+    def __enter__(self):
+        global _ops
+        _ops.append(self)
+    
+    def __exit__(self, *vals):
+        global _ops
+        _ops.pop()
 
 _add_group = None
 _mul_group = None
@@ -23,11 +35,24 @@ class Element:
     def __init__(self, val):
         self.val = val
     
+    def check_in_group(self):
+        if _add_group and self in _add_group:
+            return
+        
+        if _mul_group and self in _mul_group:
+            return
+        
+        raise ValueError('Not in any active groups')
+    
     def __add__(self, o):
+        self.check_in_group()
+        
         add = _add_group.op
         return add(self, o)
     
     def __rmul__(self, o):
+        self.check_in_group()
+        
         if isinstance(o, Element):
             return o.__mul__(self)
         
@@ -49,10 +74,62 @@ class Element:
         return result
     
     def __mul__(self, o):
+        self.check_in_group()
+        
+        # Accept integer multiplication, even on the right
+        if type(o) in (int, float) and o == int(o):
+            return o * self
+        
         mul = _mul_group.op
         return mul(self, o)
     
+    # Do whatever operation is the current operation
+    # If none is specified, do the only one possible
+    # If both are possible, fail
+    def __matmul__(self, o):
+        self.check_in_group()
+        
+        global _ops
+        if _ops:
+            op = _ops[-1]
+            if op == OpType.ADD:
+                return self + o
+            elif op == OpType.MUL:
+                return self * o
+            elif op != OpType.DEFAULT:
+                raise ValueError('Op type: {}'.format(op))
+        
+        if _add_group and self in _add_group:
+            if _mul_group and self in _mul_group:
+                raise ValueError('Operation ambiguous')
+            return self + o
+        elif self in _mul_group:
+            return self * o
+    
+    # Return the element either times zero or the the zeroth power
+    def __invert__(self):
+        self.check_in_group()
+        
+        global _ops
+        if _ops:
+            op = _ops[-1]
+            if op == OpType.ADD:
+                return 0 * self
+            elif op == OpType.MUL:
+                return self ** 0
+            elif op != OpType.DEFAULT:
+                raise ValueError('Op type: {}'.format(op))
+        
+        if _add_group and self in _add_group:
+            if _mul_group and self in _mul_group:
+                raise ValueError('Operation ambiguous')
+            return 0 * self
+        elif self in _mul_group:
+            return self ** 0
+    
     def __pow__(self, o):
+        self.check_in_group()
+        
         result = _mul_group.identity
         
         if o != int(o):#not isinstance(o, int):
@@ -87,9 +164,9 @@ class BoundGroup:
         global _add_group
         global _mul_group
         
-        if self.op_type == OpType.ADDITIVE:
+        if self.op_type == OpType.ADD:
             _add_group = self.group
-        elif self.op_type == OpType.MULTIPLICATIVE:
+        elif self.op_type == OpType.MUL:
             _mul_group = self.group
         else:
             raise ValueError('Op type: {}'.format(self.op_type))
@@ -100,13 +177,18 @@ class BoundGroup:
         global _add_group
         global _mul_group
         
-        _current_groups.pop()
+        popped = _current_groups.pop()
+        
+        if popped.group is _add_group and popped.op_type == OpType.ADD:
+            _add_group = None
+        if popped.group is _mul_group and popped.op_type == OpType.MUL:
+            _mul_group = None
         
         if _current_groups:
             new_top = _current_groups[-1]
-            if new_top.op_type == OpType.ADDITIVE:
+            if new_top.op_type == OpType.ADD:
                 _add_group = new_top.group
-            elif new_top.op_type == OpType.MULTIPLICATIVE:
+            elif new_top.op_type == OpType.MUL:
                 _mul_group = new_top.group
             else:
                 raise ValueError('Op type: {}'.format(new_top.op_type))
@@ -130,16 +212,22 @@ class Group:
             self.identity = identity
     
     def add(self):
-        return BoundGroup(self, OpType.ADDITIVE)
+        return BoundGroup(self, OpType.ADD)
     
     def mul(self):
-        return BoundGroup(self, OpType.MULTIPLICATIVE)
+        return BoundGroup(self, OpType.MUL)
+    
+    def order(self):
+        return len(self)
     
     def __contains__(self, e):
         return e in self.elements
     
     def __iter__(self):
         return iter(self.elements)
+    
+    def __len__(self):
+        return len(self.elements)
     
     def __enter__(self):
         BoundGroup(self, self.default_type).__enter__()
@@ -188,3 +276,16 @@ def check_valid(group):
     check_inverses(group)
     check_is_closed(group)
     check_associative(group)
+
+# Return the order of the given element.
+def order(a, op_type=OpType.DEFAULT):
+    with op_type:
+        # Get the identity
+        e = ~a
+        val = a
+        i = 1
+        while True:
+            if val == e:
+                return i
+            val = val @ a
+            i += 1
