@@ -7,7 +7,7 @@ Created on Sat May 14 18:52:11 2022
 
 from enum import Enum
 
-class GroupType(Enum):
+class OpType(Enum):
     ADDITIVE='+'
     MULTIPLICATIVE='*'
 
@@ -51,8 +51,8 @@ class Element:
         mul = _mul_group.op
         return mul(self, o)
     
-    def __exp__(self, o):
-        result = _mul_group.id
+    def __pow__(self, o):
+        result = _mul_group.identity
         
         if o != int(o):#not isinstance(o, int):
             raise ValueError('Exponent: {}'.format(o))
@@ -86,9 +86,9 @@ class BoundGroup:
         global _add_group
         global _mul_group
         
-        if self.op_type == GroupType.ADDITIVE:
+        if self.op_type == OpType.ADDITIVE:
             _add_group = self.group
-        elif self.op_type == GroupType.MULTIPLICATIVE:
+        elif self.op_type == OpType.MULTIPLICATIVE:
             _mul_group = self.group
         else:
             raise ValueError('Op type: {}'.format(self.op_type))
@@ -103,9 +103,9 @@ class BoundGroup:
         
         if _current_groups:
             new_top = _current_groups[-1]
-            if new_top.op_type == GroupType.ADDITIVE:
+            if new_top.op_type == OpType.ADDITIVE:
                 _add_group = new_top.group
-            elif new_top.op_type == GroupType.MULTIPLICATIVE:
+            elif new_top.op_type == OpType.MULTIPLICATIVE:
                 _mul_group = new_top.group
             else:
                 raise ValueError('Op type: {}'.format(new_top.op_type))
@@ -129,10 +129,10 @@ class Group:
             self.identity = identity
     
     def add(self):
-        return BoundGroup(self, GroupType.ADDITIVE)
+        return BoundGroup(self, OpType.ADDITIVE)
     
     def mul(self):
-        return BoundGroup(self, GroupType.MULTIPLICATIVE)
+        return BoundGroup(self, OpType.MULTIPLICATIVE)
     
     def __contains__(self, e):
         return e in self.elements
