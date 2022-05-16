@@ -29,3 +29,20 @@ def is_isomorphism(f, g1, g2):
             return False
     
     return True
+
+class Function:
+    def __init__(self, f, domain, codomain):
+        self.f = dict()
+        
+        for x in domain:
+            y = f[x] if isinstance(f, dict) else f(x)
+            if not y in codomain:
+                raise ValueError('f({}) = {} not in codomain'.format(x, y))
+            self.f[x] = y
+
+def all_isomorphisms_helper(g1, g2, f):
+    pass
+
+# Return a list of all isomorphisms from g1 to g2.
+def all_isomorphisms(g1, g2):
+    f = {g1.identity: g2.identity}
