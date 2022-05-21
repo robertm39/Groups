@@ -39,6 +39,9 @@ class Function:
             if not y in codomain:
                 raise ValueError('f({}) = {} not in codomain'.format(x, y))
             self.f[x] = y
+    
+    def __apply__(self, x):
+        return self.f[x]
 
 def all_isomorphisms_helper(g1, g2, f):
     pass
@@ -46,3 +49,22 @@ def all_isomorphisms_helper(g1, g2, f):
 # Return a list of all isomorphisms from g1 to g2.
 def all_isomorphisms(g1, g2):
     f = {g1.identity: g2.identity}
+    
+    # For now, do it the dumb way
+    g1_rest = list(g1)
+    g1_rest.remove(g1.identity)
+    g2_rest = list(g2)
+    g2_rest.remove(g2.identity)
+    
+    # Go through all bijections from g1 to g2 that map identity to identity
+    # and keep only the isomorphisms
+    isos = list()
+    for perm in itertools.permutations(g2_rest):
+        iso = dict(f)
+        for x, y in zip(g1_rest, perm):
+            iso[x] = y
+        
+        if is_isomorphism(iso, g1, g2):
+            isos.append(Function(iso))
+    
+    return isos

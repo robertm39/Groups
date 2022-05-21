@@ -30,8 +30,8 @@ def test_1():
 
 def test_2():
     # Try the field of integers, modulo 5
-    add_group = cyclic.add_cyclic(5)
-    mul_group = cyclic.mul_cyclic(5)
+    add_group = group.add_cyclic(5)
+    mul_group = group.mul_cyclic(5)
     
     group.check_valid(add_group)
     group.check_valid(mul_group)
@@ -56,14 +56,35 @@ def iso(base, a, group):
         return base ** a.val
 
 def test_3():
-    group = cyclic.add_cyclic(9)
+    g = group.add_cyclic(9)
     a2 = Element(2)
-    func = lambda a: iso(a2, a, group)
+    func = lambda a: iso(a2, a, g)
     
-    print('Is isomorphism? {}'.format(isomorphism.is_isomorphism(func, group, group)))
+    print('Is isomorphism? {}'.format(isomorphism.is_isomorphism(func, g, g)))
+
+def test_4():
+    g1 = group.add_cyclic(2)
+    g2 = group.add_cyclic(2)
+    
+    g = group.product_group(g1, g2)
+    for a in g:
+        print(a)
+    
+    print('')
+    
+    with g:
+        a = Element((0, 1))
+        b = Element((1, 0))
+        c = a+b
+        print(a+b)
+        print(a+c)
+        print(b+c)
+        print(c+c)
+        print(a+a)
+        print(b+b)
 
 def main():
-    test_2()
+    test_4()
 
 if __name__ == '__main__':
     main()
