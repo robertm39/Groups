@@ -83,8 +83,55 @@ def test_4():
         print(a+a)
         print(b+b)
 
+def isos_same(isos_1, isos_2):
+    for iso_1 in isos_1:
+        has_same = False
+        for iso_2 in isos_2:
+            is_same = True
+            for x, y in iso_1.f.items():
+                if iso_2(x) != y:
+                    is_same = False
+                    break
+            if is_same:
+                has_same = True
+        
+        if not has_same:
+            return False
+    
+    return True
+
+def test_5():
+    # Get Z_2 x Z_2 x Z_2
+    g = group.product_group(group.add_cyclic(8))
+    
+    # isos_1 = group.all_isomorphisms(g, g)
+    # print('{} automorphisms'.format(len(isos_1)))
+    # isoclasses = group.get_isoclasses(g, autos=isos_1)
+    # for isoclass in isoclasses:
+    #     print(('{}, '*len(isoclass)).format(*[a.val for a in isoclass]))
+    
+    # print('')
+    
+    isos_2 = group.get_isomorphisms(g, g)
+    print('{} automorphisms'.format(len(isos_2)))
+    
+    # for iso in isos:
+    #     if not group.is_isomorphism(iso, g, g):
+    #         print('Not an isomorphism!')
+    #     for a in g:
+    #         print('{} -> {}'.format(a, iso(a)))
+    #     print('')
+    # print('')
+    
+    isoclasses = group.get_isoclasses(g, autos=isos_2)
+    for isoclass in isoclasses:
+        print(('{}, '*len(isoclass)).format(*[a.val for a in isoclass]))
+        
+    print('')
+    print('Isos the same? {}'.format(isos_same(isos_1, isos_2)))
+
 def main():
-    test_4()
+    test_5()
 
 if __name__ == '__main__':
     main()
